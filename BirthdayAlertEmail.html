@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+  table, th, td {
+  border: 1px solid black;
+  font-size:15px;
+}
+
+th, thead {
+  background-color: LightBlue;
+}
+
+</style>  
+  </head>
+  <body>
+    <div>
+      <table>
+        <thead>
+          <th><?= Column1 ?></th>
+          <th><?= Column2 ?></th>
+        </thead>
+        <tbody >
+          <? table.forEach(r => {?>
+              <tr> 
+              <td><?= r[0] ?></td>
+              <td><?= r[1] ?></td>
+              </tr>
+          <?})?>      
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
