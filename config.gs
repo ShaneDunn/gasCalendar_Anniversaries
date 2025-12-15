@@ -30,8 +30,8 @@ function getConfigsStartingAtCol_(sheet, colIndex) {
 
   columnDef = false;
 
-  // The first cell of the first column becomes the name of the query.
-  config.report = range.getCell(1,1).getValue();
+  // The first cell of the first column becomes the name of the configuration.
+  config.config = range.getCell(1,1).getValue();
 
   for (rowIndex = 2; rowIndex <= range.getLastRow(); ++rowIndex) {
     key = range.getCell(rowIndex, 1).getValue();

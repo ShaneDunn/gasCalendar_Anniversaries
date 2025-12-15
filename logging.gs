@@ -24,6 +24,7 @@ var ERROR_SHEET = 'Errors';
  */
 function setupLog_() {
   logArray_ = [];
+  errorArray_ = [];
 }
 
 /**
@@ -125,4 +126,18 @@ function loadNewError(sheet) {
                        .setHorizontalAlignment("general-left")
                        .setVerticalAlignment("bottom")
                        .setTextDirection(null);
+}
+
+/**
+ * Adds a Log sheet to the spreadsheet.
+ */
+function createLogSheet() {
+  loadNewLog(getOrCreateSheet_(LOG_SHEET));
+}
+
+/**
+ * Adds a Error sheet to the spreadsheet.
+ */
+function createErrorSheet() {
+  loadNewError(getOrCreateSheet_(ERROR_SHEET));
 }

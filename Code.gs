@@ -1,169 +1,82 @@
-//add a menu when the spreadsheet is opened
+/**
+ * Logging and configuration functions adapted from the script:
+ * 'A Google Apps Script for importing CSV data into a Google Spreadsheet' by Ian Lewis.
+ *  https://gist.github.com/IanLewis/8310540
+ * @author ianmlewis@gmail.com (Ian Lewis)
+ * @author dunn.shane@gmail.com (Shane Dunn)
+ * De Bortoli Wines July 2017
+*/
+/* =========== Globals ======================= */
+/**
+ * The output text that should be displayed in the log.
+ * @private.
+ */
+var logArray_;
+
+var LOG_SHEET = 'Log';
+var ERROR_SHEET = 'Errors';
+
+var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
+var now = new Date();
+var sDate = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+
+/* =========== Logging functions ======================= */
+
+/**
+ * Initialise the Menu and anything else needed
+ *  for the succesful operation of the spreadsheet
+ */
 function onOpen() {
+  //  add a menu when the spreadsheet is opened
   var ui = SpreadsheetApp.getUi();
   // Or DocumentApp or FormApp.
   ui.createMenu('Calendar Menu')
       .addItem('Update Calendar', 'pushToCalendar')
+      // .addItem('Update Calendar', 'v2pushToCalendar')
       .addToUi();
+
+  // Add basic Configuration and Logging sheets if not setup
+  var sheet = getOrCreateSheet_(CONFIG_SHEET);
+  if (sheet.getRange(1, 1).getValue() == ""){
+    loadNewConfiguration(sheet);
+  }
+  sheet = getOrCreateSheet_(LOG_SHEET);
+  if (sheet.getRange(1, 1).getValue() == ""){
+    loadNewLog(sheet);
+  }
+  sheet = getOrCreateSheet_(ERROR_SHEET);
+  if (sheet.getRange(1, 1).getValue() == ""){
+    loadNewError(sheet);
+  }
 }
 
-//push new events to calendar
-function pushToCalendar() {
-
-  //below are the column ids of that represents the values used in the spreadsheet (these are zero indexed)
-  // 
-  //Column containg the round to be played
-  //Rnd	Date	Start Time	Seniors	vs	Ground	Home	Away	Player	Loaded	Event ID
-  var vRound = 0;
-  //Column containg the date of the game
-  var vDate = 1;
-  //Column containing the start time of the U17's
-  var vStartTime = 2;
-  //Column containing the Start time of 1st Grade
-  var v1stStartTime = 3;
-  //Column containg the opposition
-  var vVs = 4;
-  //Column containg the location of the game
-  var vlocation = 5;
-  //Column containing the notification status
-  var vHome = 6;
-  //Column containing the Guests
-  var vAway = 7;
-  //Column containing the Player
-  var vPlayer = 8;
-  //Column containing the loaded status
-  var vLoaded = 9;
-  //Column containing the event ID
-  var vEventID = 10
-  ;
-
-  //spreadsheet variables
-  var sheet = SpreadsheetApp.getActive().getSheetByName("Draw");
-  var firstRow = 3; 
-  var lastRow = sheet.getLastRow(); 
-  var numRow = lastRow - firstRow + 1; 
-  var firstCol = 31; 
-  var numCol = 11; 
-  var range = sheet.getRange(firstRow,firstCol,lastRow,numCol);
-  var values = range.getValues();   
-  var crlf = String.fromCharCode(10);
-
-  //calendar variables
-  var calendar = CalendarApp.getCalendarById('user.name@gmail.com')
-
-  var numValues = 0;
-  for (var i = 0; i < values.length; i++) {     
-    //check to see if round and vs are filled out - date is left off because length is "undefined"
-    if ((values[i][vRound].toString().length > 0) && (values[i][vVs].length > 0)) {
-
-      //check if it has not been entered before          
-      if (values[i][vLoaded] != 'y') {
-        var vDesc = '';
-        var newEventTitle = '';
-        switch (values[i][vPlayer]) {
-          case "Ryan":
-            vDesc = 'RFNL Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + "U17's Starting at " + Utilities.formatDate(values[i][vStartTime], 'Australia/Sydney', 'hh:mm a');
-              vDesc = vDesc + "  - 1st's Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Ryan - RFNL Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          case "Emma":
-            vDesc = 'ACT Womens Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + " Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Emma - ACTW Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          case "Mum":
-            vDesc = 'Griffith Hockey Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + " Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Mum - GHA Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          default:
-            var vDesc = 'Unkown';
-            var newEventTitle = 'Unkown';
-            break;
-        }
-
-        //create event https://developers.google.com/apps-script/class_calendarapp#createEvent
-        var options = {description: vDesc, location: values[i][vlocation]};
-        Logger.log(newEventTitle);
-        Logger.log(options);
-        var newEvent = calendar.createAllDayEvent(newEventTitle, values[i][vDate], options);
-        newEvent.removeAllReminders();
-
-        var newEventId = newEvent.getId(); //get ID
-        //mark as entered, enter ID
-        sheet.getRange(firstRow+i,firstCol+vLoaded).setValue('y');
-        sheet.getRange(firstRow+i,firstCol+vEventID).setValue(newEventId);
-
-      }
-      else {
-        var vDesc = '';
-        var newEventTitle = '';
-        switch (values[i][vPlayer]) {
-          case "Ryan":
-            vDesc = 'RFNL Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + "U17's Starting at " + Utilities.formatDate(values[i][vStartTime], 'Australia/Sydney', 'hh:mm a');
-              vDesc = vDesc + "  - 1st's Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Ryan - RFNL Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          case "Emma":
-            vDesc = 'ACT Womens Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + " Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Emma - ACTW Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          case "Mum":
-            vDesc = 'Griffith Hockey Round ' + values[i][vRound] + crlf;
-            if (values[i][vlocation] != "") {
-              vDesc = vDesc + 'Vs ' + values[i][vVs] + crlf;
-              vDesc = vDesc + " Starting at " + Utilities.formatDate(values[i][v1stStartTime], 'Australia/Sydney', 'hh:mm a');
-            } else {
-              vDesc = vDesc + values[i][vVs];
-            }
-            newEventTitle = 'Mum - GHA Rnd: ' + values[i][vRound] + ' - ' + values[i][vVs];
-            break;
-          default:
-            var vDesc = 'Unkown';
-            var newEventTitle = 'Unkown';
-            break;
-        }
-        //update event
-        var id = values[i][vEventID];
-        var event = calendar.getEventSeriesById(id);
-        if (event !== null && typeof event != 'undefined' ) {
-          var vOldDesc = event.getDescription();
-          if (vDesc != vOldDesc) {
-            Logger.log(vDesc);
-            event.setDescription(vDesc);
-          }
-        }
-      }
-    }
-    numValues++;
+/**
+ * Sychonise changes in spreadsheet to the calendar.
+ */
+function pushToCalendar(e) {
+  setupLog_();
+  var i, config, configName, sheet;
+  log_('Running on: ' + now);
+  
+  var configs = getConfigs_(getOrCreateSheet_(CONFIG_SHEET));
+  
+  if (!configs.length) {
+    log_('No report configurations found');
+  } else {
+    log_('Found ' + configs.length + ' report configurations.');
+    run_report(configs, "Water Statement","print");
+  }
+  log_('Script done');
+    
+  // Update the user about the status of the queries.
+  if( e === undefined ) {
+    displayLog_();
   } 
+}
+
+/**
+ * Do-nothing method to trigger the authorization dialog if not already done.
+ */
+function checkAuthorization() {
 }
  

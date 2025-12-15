@@ -1,12 +1,13 @@
-//add a menu when the spreadsheet is opened
-function v2onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  // Or DocumentApp or FormApp.
-  ui.createMenu('Calendar Menu')
-      .addItem('Update Calendar', 'v2pushToCalendar')
-      .addToUi();
-}
+/**
+ * 
+ * 
+ * 
+ * 
+ * @author dunn.shane@gmail.com (Shane Dunn)
+*/
+/* =========== Globals ======================= */
 
+/* =========== Calendar functions ======================= */
 
 /**
  * Creates an event in the user's default calendar.
@@ -356,8 +357,7 @@ function delete_events()
 }
 }
 
-function delete_eventsv2()
-{
+function delete_eventsv2() {
   var calendarName = 'Test';
   var myEmail = "YOUR EMAIL";
   var myTitle = "Hello";
