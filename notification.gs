@@ -1,45 +1,46 @@
-// == ------------------------------------------------------------
-function get_config(configID, configs) {
-  var i, config, configName;
-  for (i = 0; config = configs[i]; ++i) {
-    configName = config.configurationID;
-    if (config['configurationID'] === configID) {
-      log_('Using configuration from: ' + configName);
-      return config;
-    }
-  }
-  log_('No configuration found: ' + configID);
-}
+/**
+ * 
+ * 
+ * 
+ * 
+ * @author dunn.shane@gmail.com (Shane Dunn)
+ * 
+*/
+
+/* =========== Globals ======================= */
+
+/* =========== Notification functions ======================= */
 
 function UpcomingBirthdaysEmail(e) {
+  let config;
   setupLog_();
-  var i, config, configName;
-  log_('Running on: ' + now);
+  log_('UpcomingBirthdaysEmail: Running on: ' + now);
   
-  var configs = getConfigs_(getOrCreateSheet_(CONFIG_SHEET));
-  configName = "UpcomingBirthdaysEmail";
+  const configs = getConfigs_(getOrCreateSheet_(CONFIG_SHEET));
+  const configName = "UpcomingBirthdaysEmail";
   if (!configs.length) {
-    log_('No configurations found');
+    log_('Error: No configurations found');
   } else {
     log_('Found ' + configs.length + ' configurations.');
     config = get_config(configName, configs);
+    log_('Using configuration: ' + configName);
     Logger.log(config);
     // Get Active sheet
-    var BirthdaysSpreadsheet = SpreadsheetApp.getActive();
+    const BirthdaysSpreadsheet = SpreadsheetApp.getActive();
 
     // Get sheet that contains the information for the email.
-    var EmailSheet = BirthdaysSpreadsheet.getSheetByName(config.email_sheet)
-    var LastRow = BirthdaysSpreadsheet.getRangeByName(config.ubT_last_row).getValue();
-    var UpcomingBirthdaysTable = EmailSheet.getRange(config.ubT_start_row,config.ubT_start_column,LastRow,config.ubT_last_column).getDisplayValues();
+    const EmailSheet = BirthdaysSpreadsheet.getSheetByName(config.email_sheet)
+    const LastRow = BirthdaysSpreadsheet.getRangeByName(config.ubT_last_row).getValue();
+    const UpcomingBirthdaysTable = EmailSheet.getRange(config.ubT_start_row,config.ubT_start_column,LastRow,config.ubT_last_column).getDisplayValues();
 
     // Translate the cells into a HTML table
-    var HtmlTemplate = HtmlService.createTemplateFromFile(config.email_template);
+    const HtmlTemplate = HtmlService.createTemplateFromFile(config.email_template);
     HtmlTemplate.Column1 = "Person";
     HtmlTemplate.Column2 = "Date";
     HtmlTemplate.Column3 = "Turning";
     HtmlTemplate.Column4 = "Days Remaining";
     HtmlTemplate.table = UpcomingBirthdaysTable;
-    var EmailTable = HtmlTemplate.evaluate().getContent();
+    const EmailTable = HtmlTemplate.evaluate().getContent();
   
     try {
       log_('Sending Email to: ' + config['email_address']);
@@ -109,6 +110,7 @@ function test() {
   for (var i = 0; i < calendars.length; i++) {
     var calendar = calendars[i];
     Logger.log('Processing calendar: ' + calendar.getName() + ' (ID: ' + calendar.getId() + ')');
+    Logger.log(calendar);
 
     // Get events for the defined time range
     //var events = calendar.getEvents(startDate, endDate);

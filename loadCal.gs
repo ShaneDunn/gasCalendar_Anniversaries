@@ -8,6 +8,48 @@
 /* =========== Globals ======================= */
 
 /* =========== Calendar functions ======================= */
+function run_sync(vconfigs) {
+  let config;
+  setupLog_();
+  log_('run_sync: Running on: ' + now);
+  
+  const configName = "LoadCalendar";
+  config = get_config(configName, vconfigs);
+  log_('Using configuration: ' + configName);
+  Logger.log(config);
+  // Get Active sheet
+  const birthdaySpreadsheet = SpreadsheetApp.getActive();
+
+  // Get sheet that contains the information for the sync.
+  const dateSheet = birthdaySpreadsheet.getSheetByName(config.date_sheet);
+  const calendar_ID = config['Calendar_ID'];
+  const calendar_Name = config['Calendar_Name'];
+
+  var lastRow = dateSheet.getLastRow(); 
+  var lastCol = dateSheet.getLastColumn(); 
+  var range = dateSheet.getRange(2,1,lastRow,lastCol);
+  var values = range.getValues();   
+  var cDate = new Date();
+  var eDate = new Date();
+  var sTime = '';
+  var eTime = '';
+
+  //calendar variables
+  var calendar = CalendarApp.getCalendarById(calendar_ID);
+
+}
+
+function get_config(configID, configs) {
+  let config;
+  for (let i = 0; config = configs[i]; ++i) {
+    if (config['configurationID'] === configID) {
+      log_('Using configuration: ' + config.configurationID);
+      return config;
+    }
+  }
+  log_('No configuration found: ' + configID);
+}
+
 
 /**
  * Creates an event in the user's default calendar.
@@ -416,4 +458,120 @@ function sync() {
       }
     }
   }
+}
+
+function getAllCalendarEvents() {
+  // Define the time range (e.g., the current month)
+  var now = new Date();
+  var startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  var endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of the current month
+
+  // Get the default calendar
+  var calendar = CalendarApp.getDefaultCalendar();
+  Logger.log('Retrieving events from calendar: ' + calendar.getName());
+
+  // Get all events within the specified time range
+  var events = calendar.getEvents(startOfMonth, endOfMonth);
+  Logger.log('Number of events found: ' + events.length);
+
+  // Loop through the events and log details
+  for (var i = 0; i < events.length; i++) {
+    var event = events[i];
+    Logger.log('Event Title: ' + event.getTitle());
+    Logger.log('Start Time: ' + event.getStartTime());
+    Logger.log('End Time: ' + event.getEndTime());
+    Logger.log('Description: ' + event.getDescription());
+    Logger.log('---');
+  }
+}
+
+function getAllEventsFromAllCalendars() {
+  // Define a time range
+  var now = new Date();
+  var oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(now.getMonth() - 1);
+  var oneMonthFromNow = new Date();
+  oneMonthFromNow.setMonth(now.getMonth() + 1);
+
+  // Get all calendars the user owns or is subscribed to
+  var calendars = CalendarApp.getAllCalendars();
+  
+  for (var j = 0; j < calendars.length; j++) {
+    var calendar = calendars[j];
+    Logger.log('--- Checking Calendar: ' + calendar.getName() + ' (' + calendar.getId() + ') ---');
+
+    // Get events for the defined time range
+    var events = calendar.getEvents(oneMonthAgo, oneMonthFromNow);
+    Logger.log('Number of events: ' + events.length);
+
+    for (var i = 0; i < events.length; i++) {
+      var event = events[i];
+      Logger.log('  Event Title: ' + event.getTitle());
+      Logger.log('  Start Time: ' + event.getStartTime());
+      // ... other details
+    }
+  }
+}
+
+/**
+ * Retrieve and log events from the given calendar that have been modified
+ * since the last sync. If the sync token is missing or invalid, log all
+ * events from up to a month ago (a full sync).
+ *
+ * @param {string} calendarId The ID of the calender to retrieve events from.
+ * @param {boolean} fullSync If true, throw out any existing sync token and
+ *        perform a full sync; if false, use the existing sync token if possible.
+ */
+function logSyncedEvents(calendarId, fullSync) {
+  const properties = PropertiesService.getUserProperties();
+  const options = {
+    maxResults: 100,
+  };
+  const syncToken = properties.getProperty("syncToken");
+  if (syncToken && !fullSync) {
+    options.syncToken = syncToken;
+  } else {
+    // Sync events up to thirty days in the past.
+    options.timeMin = getRelativeDate(-30, 0).toISOString();
+  }
+  // Retrieve events one page at a time.
+  let events;
+  let pageToken;
+  do {
+    try {
+      options.pageToken = pageToken;
+      events = Calendar.Events.list(calendarId, options);
+    } catch (e) {
+      // Check to see if the sync token was invalidated by the server;
+      // if so, perform a full sync instead.
+      if (
+        e.message === "Sync token is no longer valid, a full sync is required."
+      ) {
+        properties.deleteProperty("syncToken");
+        logSyncedEvents(calendarId, true);
+        return;
+      }
+      throw new Error(e.message);
+    }
+    if (events.items && events.items.length === 0) {
+      console.log("No events found.");
+      return;
+    }
+    for (const event of events.items) {
+      if (event.status === "cancelled") {
+        console.log("Event id %s was cancelled.", event.id);
+        return;
+      }
+      if (event.start.date) {
+        const start = new Date(event.start.date);
+        console.log("%s (%s)", event.summary, start.toLocaleDateString());
+        return;
+      }
+      // Events that don't last all day; they have defined start times.
+      const start = new Date(event.start.dateTime);
+      console.log("%s (%s)", event.summary, start.toLocaleString());
+    }
+    pageToken = events.nextPageToken;
+  } while (pageToken);
+  properties.setProperty("syncToken", events.nextSyncToken);
 }

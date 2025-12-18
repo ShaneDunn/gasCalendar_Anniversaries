@@ -1,27 +1,31 @@
 /**
- * Logging and configuration functions adapted from the script:
- * 'A Google Apps Script for importing CSV data into a Google Spreadsheet' by Ian Lewis.
- *  https://gist.github.com/IanLewis/8310540
- * @author ianmlewis@gmail.com (Ian Lewis)
+ * 
+ * 
+ * 
+ * 
  * @author dunn.shane@gmail.com (Shane Dunn)
- * De Bortoli Wines July 2017
+ * 
 */
+
 /* =========== Globals ======================= */
 /**
- * The output text that should be displayed in the log.
- * @private.
- */
-var logArray_;
+ * Globals found in logging.gs
 
-var LOG_SHEET = 'Log';
-var ERROR_SHEET = 'Errors';
+  var logArray_;
+  var LOG_SHEET = 'Log';
+  var ERROR_SHEET = 'Errors';
+
+
+ * Globals found in config.gs
+
+  var CONFIG_SHEET = 'Configuration';
+*/
 
 var tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
 var now = new Date();
 var sDate = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
 
-/* =========== Logging functions ======================= */
-
+/* =========== Initialisation functions ======================= */
 /**
  * Initialise the Menu and anything else needed
  *  for the succesful operation of the spreadsheet
@@ -56,15 +60,15 @@ function onOpen() {
 function pushToCalendar(e) {
   setupLog_();
   var i, config, configName, sheet;
-  log_('Running on: ' + now);
+  log_('pushToCalendar: Running on: ' + now);
   
   var configs = getConfigs_(getOrCreateSheet_(CONFIG_SHEET));
   
   if (!configs.length) {
-    log_('No report configurations found');
+    log_('No configurations found');
   } else {
-    log_('Found ' + configs.length + ' report configurations.');
-    run_report(configs, "Water Statement","print");
+    log_('Found ' + configs.length + ' configurations.');
+    run_sync(configs);
   }
   log_('Script done');
     
